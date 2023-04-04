@@ -53,7 +53,7 @@ async function processChatGptMessage(message, messageStore, openai_api, say) {
     await messageStore.set(message.user, currentMessages);
 
     // Respond back to user with ChatGPT's response
-    await say(chatgptResponse.replace(/^Eve:\s*/i, ''));
+    await say(chatgptResponse.replace(new RegExp(`^${process.env.SLACK_BOT_USER_NAME}:\s*`, 'i'), ''));
   } catch (error) {
     console.error(error);
     await say('Sorry, something went wrong.');
