@@ -19,6 +19,7 @@ oauth_config:
       - im:history
       - im:write
       - users:read
+      - groups:write # Required to post in private channels
 settings:
   event_subscriptions:
     bot_events:
