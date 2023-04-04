@@ -1,5 +1,4 @@
-# Getting Started ⚡️ Bolt for JavaScript
-> Slack app example from 📚 [Getting started with Bolt for JavaScript tutorial][1]
+# Eve - a Bolt-JS Slack Chatbot
 
 ## Overview
 
@@ -25,16 +24,18 @@ Then scroll down in Basic Info and click **Generate Token and Scopes** with both
 # Replace with your bot and app token
 export SLACK_BOT_TOKEN=<your-bot-token> # from the OAuth section
 export SLACK_APP_TOKEN=<your-app-level-token> # from the Basic Info App Token Section
+export SLACK_BOT_USER_NAME=<your-bot-username> # must match the short name of your bot user
+export OPENAI_API_KEY=<your-openai-api-key> # get from here: https://platform.openai.com/account/api-keys
 ```
 
 ### 2. Setup your local project
 
 ```zsh
 # Clone this project onto your machine
-git clone https://github.com/slackapi/bolt-js-getting-started-app.git
+git clone https://github.com/scarolan/eve.git
 
 # Change into the project
-cd bolt-js-getting-started-app/
+cd eve
 
 # Install the dependencies
 npm install
@@ -47,21 +48,4 @@ npm run start
 
 ### 4. Test
 
-Go to the installed workspace and type **Hello** in a DM to your new bot. You can also type **Hello** in a channel where the bot is present
-
-## Contributing
-
-### Issues and questions
-
-Found a bug or have a question about this project? We'd love to hear from you!
-
-1. Browse to [slackapi/bolt-js/issues][4]
-1. Create a new issue
-1. Select the `[x] examples` category
-
-See you there and thanks for helping to improve Bolt for everyone!
-
-[1]: https://slack.dev/bolt-js/tutorial/getting-started
-[2]: https://slack.dev/bolt-js/
-[3]: https://slack.dev/bolt-js/tutorial/getting-started#setting-up-events
-[4]: https://github.com/slackapi/bolt-js/issues/new
+Go to the installed workspace and type **help** in a DM to your new bot. 
