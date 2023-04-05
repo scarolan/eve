@@ -21,11 +21,14 @@ import { ChatGPTAPI } from 'chatgpt';
 import Keyv from 'keyv';
 import KeyvRedis from '@keyv/redis';
 import fetch from 'node-fetch';
+//Uncomment this and the logLevel below to enable DEBUG
+//import { LogLevel } from '@slack/bolt';
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   socketMode: true,
-  appToken: process.env.SLACK_APP_TOKEN
+  appToken: process.env.SLACK_APP_TOKEN,
+  //logLevel: LogLevel.DEBUG,
 });
 
 ///////////////////////////////////////////////////////////////
