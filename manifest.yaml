@@ -16,7 +16,8 @@ oauth_config:
       - channels:join
       - chat:write
       - commands
-      - groups:write # Not sure if this is required...
+      - groups:read # Required for private channels
+      - groups:write # Required for private channels
       - im:write
       - mpim:read
       - mpim:write
