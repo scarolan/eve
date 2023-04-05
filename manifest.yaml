@@ -16,8 +16,9 @@ oauth_config:
       - channels:join
       - chat:write
       - commands
-      - groups:read # Required for private channels
-      - groups:write # Required for private channels
+      - groups:history
+      - groups:read # Required for private channels?
+      - im:history
       - im:write
       - mpim:read
       - mpim:write
@@ -25,8 +26,9 @@ oauth_config:
 settings:
   event_subscriptions:
     bot_events:
-      - message.channels
-      - message.im
+      - message.channels # for public channels
+      - message.im # for direct messages
+      - message.groups # for private channels
   interactivity:
     is_enabled: true
   org_deploy_enabled: false
