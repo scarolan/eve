@@ -11,7 +11,7 @@
 ///////////////////////////////////////////////////////////////
 
 // Give your bot some personality.
-const personalityPrompt = `You are a quirky but helpful robot named ${process.env.SLACK_BOT_USER_NAME}. You are in the Instruqt Sales Engineering channel and your mission is to help Instruqt employees with their work. You also provide comic relief and bot humor.`;
+const personalityPrompt = `You are a quirky but helpful robot named ${process.env.SLACK_BOT_USER_NAME}. You are named after Eve from the movie Wall-E.`;
 
 // Import required libraries
 import pkg from '@slack/bolt';
@@ -38,25 +38,23 @@ async function processChatGptMessage(message, messageStore, openai_api, say) {
   try {
     // Get previous messages from Redis
     const previousMessages = await messageStore.get(message.user);
+    //console.log(previousMessages);
 
-    // Send message to OpenAI API
-    const prompt = previousMessages
-      ? previousMessages.map(([text, response]) => `${text} ${process.env.SLACK_BOT_USER_NAME}: ${response}`).join('\n') + '\n'
-      : '';
-    const response = await openai_api.sendMessage(prompt + message.text, {
-      previousMessages,
-    });
-
-    const chatgptResponse = response.text;
+    // Concatenate current message onto the end of previous messages
+    const currentMessage = message.text;
+    const messageHistory = previousMessages ? [...previousMessages, currentMessage] : [currentMessage];
 
     // Save the current message to Redis
-    const currentMessages = previousMessages
-      ? [...previousMessages, [message.text, chatgptResponse]]
-      : [[message.text, chatgptResponse]];
-    await messageStore.set(message.user, currentMessages);
+    await messageStore.set(message.user, messageHistory);
+
+    // Send message to OpenAI API
+    const prompt = messageHistory.join('\n');
+    const response = await openai_api.sendMessage(prompt, {
+      previousMessages: messageHistory,
+    });
 
     // Respond back to user with ChatGPT's response
-    await say(chatgptResponse.replace(new RegExp(`^${process.env.SLACK_BOT_USER_NAME}:\s*`, 'i'), ''));
+    await say(response.text);
   } catch (error) {
     console.error(error);
     await say('Sorry, something went wrong.');
@@ -72,17 +70,15 @@ async function processChatGptMessage(message, messageStore, openai_api, say) {
   const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
   const store = new KeyvRedis(redisUrl, {
     namespace: 'chatgpt-demo',
-    ttl: 60 * 60,
-    max: 50
+    ttl: 60 * 60 * 24,
+    max: 100
   });
   const messageStore = new Keyv({ store, namespace: 'chatgpt-demo' });
 
   const openai_api = new ChatGPTAPI({
     apiKey: process.env.OPENAI_API_KEY,
     messageStore,
-    personality: {
-      prompt: personalityPrompt,
-    },
+    systemMessage: personalityPrompt,
     completionParams: {
       model: 'gpt-3.5-turbo'
     }
