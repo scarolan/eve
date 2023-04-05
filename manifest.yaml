@@ -16,10 +16,11 @@ oauth_config:
       - channels:join
       - chat:write
       - commands
-      - im:history
+      - groups:write # Not sure if this is required...
       - im:write
+      - mpim:read
+      - mpim:write
       - users:read
-      - groups:write # Required to post in private channels
 settings:
   event_subscriptions:
     bot_events:
