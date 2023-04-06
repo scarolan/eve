@@ -200,7 +200,7 @@ async function handleMessage(message) {
       return;
     }
 
-    // If the user is in a DM, respond with the message without @botname
+    // If the user is in a DM, respond to the message with ChatGPT
     if (message.channel_type === 'im') {
       const responseText = await handleMessage(message);
       await say(responseText);
