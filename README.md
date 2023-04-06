@@ -51,7 +51,7 @@ cd eve
 npm install
 ```
 
-### 3. Start servers
+### 3. Start the chatbot application
 ```zsh
 npm run start
 ```
