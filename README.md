@@ -32,13 +32,18 @@ export OPENAI_API_KEY=<your-openai-api-key> # get from here: https://platform.op
 ```zsh
 # Clone this project onto your machine
 git clone https://github.com/scarolan/eve.git
-
-# Change into the project
-cd eve
+```
 
 # Edit the personalityPrompt at the top of app.js. Have some fun with it!
 # You can get very specific about how you want the bot to behave and respond.
+# The line you need to edit looks like this:
+```
 const personalityPrompt = `You are a quirky but helpful robot named ${process.env.SLACK_BOT_USER_NAME}. You are named after the robot Eve from the movie Wall-E.`;
+```
+
+```zsh
+# Change into the project
+cd eve
 
 # Install the dependencies
 npm install
