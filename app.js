@@ -11,7 +11,7 @@
 ///////////////////////////////////////////////////////////////
 
 // Give your bot some personality.
-const personalityPrompt = `You are a quirky but helpful robot named ${process.env.SLACK_BOT_USER_NAME}. You are named after Eve from the movie Wall-E.`;
+const personalityPrompt = `You are a quirky but helpful robot named ${process.env.SLACK_BOT_USER_NAME}. You are named after the robot Eve from the movie Wall-E.`;
 
 // Import required libraries
 import pkg from '@slack/bolt';
@@ -22,68 +22,64 @@ import Keyv from 'keyv';
 import KeyvRedis from '@keyv/redis';
 import fetch from 'node-fetch';
 //Uncomment this and the logLevel below to enable DEBUG
-//import { LogLevel } from '@slack/bolt';
+import { LogLevel } from '@slack/bolt';
 
+// Creates new connection to Slack
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   socketMode: true,
   appToken: process.env.SLACK_APP_TOKEN,
-  //logLevel: LogLevel.DEBUG,
+  logLevel: LogLevel.DEBUG,
 });
 
-///////////////////////////////////////////////////////////////
-// Use this function when you want to use ChatGPT to respond
-///////////////////////////////////////////////////////////////
-async function processChatGptMessage(message, messageStore, openai_api, say) {
-  try {
-    // Get previous messages from Redis
-    const previousMessages = await messageStore.get(message.user);
-    //console.log(previousMessages);
+//Create a redis namespace for the bot's memory
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const store = new KeyvRedis(redisUrl, {
+  namespace: 'chatgpt-demo',
+  ttl: 60 * 60 * 24,
+  max: 100
+});
+const messageStore = new Keyv({ store, namespace: 'chatgpt-demo' });
 
-    // Concatenate current message onto the end of previous messages
-    const currentMessage = message.text;
-    const messageHistory = previousMessages ? [...previousMessages, currentMessage] : [currentMessage];
-
-    // Save the current message to Redis
-    await messageStore.set(message.user, messageHistory);
-
-    // Send message to OpenAI API
-    const prompt = messageHistory.join('\n');
-    const response = await openai_api.sendMessage(prompt, {
-      previousMessages: messageHistory,
-    });
-
-    // Respond back to user with ChatGPT's response
-    await say(response.text);
-  } catch (error) {
-    console.error(error);
-    await say('Sorry, something went wrong.');
+// Create a new instance of the ChatGPTAPI client
+const openai_api = new ChatGPTAPI({
+  apiKey: process.env.OPENAI_API_KEY,
+  messageStore,
+  systemMessage: personalityPrompt,
+  completionParams: {
+    model: 'gpt-3.5-turbo'
   }
+});
+
+// Map user ids to their parentMessageIds
+const userParentMessageIds = new Map();
+
+// Function to handle messages and map them to their parent ids
+async function handleMessage(message) {
+  let response;
+  const userId = message.user;
+
+  if (!userParentMessageIds.has(userId)) {
+    // send the first message without a parentMessageId
+    response = await openai_api.sendMessage(message.text);
+    userParentMessageIds.set(userId, response.id); // store the parent message ID for this user
+  } else {
+    // send a follow-up message with the stored parentMessageId
+    const parentId = userParentMessageIds.get(userId);
+    openai_api.sendMessage(message.text, {
+      parentMessageId: parentId
+    }),
+    response = await openai_api.sendMessage(message.text, {parentMessageId: parentId});
+    // Reset the parent message id to the current message
+    userParentMessageIds.set(userId, response.id);
+  }
+
+  //console.log(response.text);
+  return(response.text);
 }
 
-///////////////////////////////////////////////////////////////
-// This is the actual bot code. THe first thing we do is create
-// a Redis keyv store to persist the bot's memory. We then
-// create a new instance of the ChatGPTAPI class.
-///////////////////////////////////////////////////////////////
+// The bot code begins here
 (async () => {
-  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-  const store = new KeyvRedis(redisUrl, {
-    namespace: 'chatgpt-demo',
-    ttl: 60 * 60 * 24,
-    max: 100
-  });
-  const messageStore = new Keyv({ store, namespace: 'chatgpt-demo' });
-
-  const openai_api = new ChatGPTAPI({
-    apiKey: process.env.OPENAI_API_KEY,
-    messageStore,
-    systemMessage: personalityPrompt,
-    completionParams: {
-      model: 'gpt-3.5-turbo'
-    }
-  });
-
   ///////////////////////////////////////////////////////////////
   // This top section is the equivalent of Hubot's 'hear' method
   // Listens to all messages and filters for phrases that match
@@ -278,19 +274,18 @@ async function processChatGptMessage(message, messageStore, openai_api, say) {
       return;
     };
 
-    // If we get this far there were no canned responses that matched so we'll
-    // send the current and previous messages to the OpenAI API and get a response.
-    await processChatGptMessage(message, messageStore, openai_api, say);
+    // Fall back to ChatGPT if nothing above matches
+    const responseText = await handleMessage(message);
+    await say(responseText);
   });
 
   ///////////////////////////////////////////////////////////////
-  // This section handles direct messages to the bot.
-  // DMs with the bot only use ChatGPT and no hard-coded responses.
-  // Unless you feel like adding some :)
+  // This section handles direct messages
   ///////////////////////////////////////////////////////////////
   app.message(async ({ message, say }) => {
     if ((message.text && message.channel_type === 'im')) {
-      await processChatGptMessage(message, messageStore, openai_api, say);
+      const responseText = await handleMessage(message);
+      await say(responseText);
     }
   });
 
