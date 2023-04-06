@@ -10,7 +10,7 @@ This is a ChatGPT-powered Slack chatbot built on the Bolt JS framework. The bot 
 - Go to https://api.slack.com/apps
 - Click **Create App**
 - Choose a workspace
-- Enter the manifest.yaml contents
+- Copy the manifest.yaml contents into the input box
 - Update the name and display name settings
 - Click **Create**
 
