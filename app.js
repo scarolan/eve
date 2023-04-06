@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////
 // Eve - Extraterrestrial Vegetation Evaluator
-// A bolt.js Slackbot augmented with OpenAI ChatGPT
+// A bolt.js Slack chatbot augmented with OpenAI ChatGPT
 // Requires a running Redis instance to persist the bot's memory
 //
 // Make sure you export the required environment variables:
@@ -35,11 +35,11 @@ const app = new App({
 //Create a redis namespace for the bot's memory
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const store = new KeyvRedis(redisUrl, {
-  namespace: 'chatgpt-demo',
+  namespace: 'chatgpt-slackbot',
   ttl: 60 * 60 * 24,
-  max: 100
+  max: 10000,
 });
-const messageStore = new Keyv({ store, namespace: 'chatgpt-demo' });
+const messageStore = new Keyv({ store, namespace: 'chatgpt-slackbot' });
 
 // Create a new instance of the ChatGPTAPI client
 const openai_api = new ChatGPTAPI({
@@ -51,10 +51,11 @@ const openai_api = new ChatGPTAPI({
   }
 });
 
-// Map user ids to their parentMessageIds
+// Use this map to track the parent message ids for each user
 const userParentMessageIds = new Map();
 
 // Function to handle messages and map them to their parent ids
+// This is how the bot is able to remember previous conversations
 async function handleMessage(message) {
   let response;
   const userId = message.user;
@@ -78,143 +79,134 @@ async function handleMessage(message) {
   return(response.text);
 }
 
-// The bot code begins here
+// The functional code for your bot is below:
 (async () => {
-  ///////////////////////////////////////////////////////////////
-  // This top section is the equivalent of Hubot's 'hear' method
-  // Listens to all messages and filters for phrases that match
-  // Use these sparingly and be sure your match is not too broad.
-  //
-  // Always end these with a return; to prevent the message from
-  // being processed by the other handlers.
-  //
-  // Excludes messages that contain the bot's name which has its own
-  // section below.
-  ///////////////////////////////////////////////////////////////
+
   app.message(async ({ message, say }) => {
-    // Matches everything except if it includes @botname
-    if ((message.text && !message.text.match(new RegExp(`@${process.env.SLACK_BOT_USER_NAME}`, 'i')))) {
+  ///////////////////////////////////////////////////////////////
+  // This listener is the equivalent of Hubot's 'hear' method.
+  // It watches all messages and filters for phrases that match.
+  // These phrases do not require an @botname to be triggered.
+  // Use these sparingly and be sure your match is not too broad.
+  ///////////////////////////////////////////////////////////////
 
-      // Responds any message containing 'i love you' with 'i know'
-      if (message.text.match(/i love you/i)) {
-        await say('I know.');
-        return;
+    // Responds any message containing 'i love you' with 'i know'
+    if (message.text.match(/i love you/i)) {
+      await say('I know.');
+      return;
+    }
+
+    // Responds to greetings that include the bot's name
+    const botNameRegex = new RegExp(`\\b${process.env.SLACK_BOT_USER_NAME}\\b`, 'i');
+    if (message.text.match(/^(hi|hello|yo|hey|greetings|whats up|what's up|hola).*/i) && botNameRegex.test(message.text)) {
+      const userInfo = await app.client.users.info({
+        token: process.env.SLACK_BOT_TOKEN,
+        user: message.user,
+      });
+
+      const displayName = userInfo.user.profile.display_name || userInfo.user.real_name;
+      await say(`Hello @${displayName}! I'm ${process.env.SLACK_BOT_USER_NAME}. Type \`@${process.env.SLACK_BOT_USER_NAME} help\` to see what I can do.`);
+      return;
+    }
+
+    // Responds to the user with their display name
+    if (message.text.match(/open the pod bay door/i)) {
+      const userInfo = await app.client.users.info({
+        token: process.env.SLACK_BOT_TOKEN,
+        user: message.user,
+      });
+
+      const displayName = userInfo.user.profile.display_name || userInfo.user.real_name;
+      await say(`I'm sorry ${displayName}, I'm afraid I can't do that.`);
+      return;
+    }
+
+    // Danceparty response with a random mix of emoji
+    if (message.text.match(/danceparty|dance party/i)) {
+      // Both emoji and slack style :emoji: are supported
+      const emoji = ["💃", "🕺", "🎉", "🎊", "🎈", "🎶", "🎵", "🔊", "🕺💃", "🥳", "👯‍♀️", "👯‍♂️", "🪩", "🪅"];
+
+      // Select 10-12 random emoji from the array
+      const numEmoji = Math.floor(Math.random() * 3) + 10;
+      const selectedEmoji = [];
+      while (selectedEmoji.length < numEmoji) {
+        const randomIndex = Math.floor(Math.random() * emoji.length);
+        selectedEmoji.push(emoji[randomIndex]);
       }
 
-      // Responds to greetings that include the bot's name
-      const botNameRegex = new RegExp(`\\b${process.env.SLACK_BOT_USER_NAME}\\b`, 'i');
-      if (message.text.match(/^(hi|hello|yo|hey|greetings|whats up|what's up|hola).*/i) && botNameRegex.test(message.text)) {
-        const userInfo = await app.client.users.info({
-          token: process.env.SLACK_BOT_TOKEN,
-          user: message.user,
-        });
+      // Join the selected emoji into a single string and send the message
+      const emojiString = selectedEmoji.join("");
+      await say(emojiString);
+      return;
+    }
 
-        const displayName = userInfo.user.profile.display_name || userInfo.user.real_name;
-        await say(`Hello @${displayName}! I'm ${process.env.SLACK_BOT_USER_NAME}. Type \`@${process.env.SLACK_BOT_USER_NAME} help\` to see what I can do.`);
-        return;
-      }
-
-      // Responds to the user with their display name
-      if (message.text.match(/open the pod bay door/i)) {
-        const userInfo = await app.client.users.info({
-          token: process.env.SLACK_BOT_TOKEN,
-          user: message.user,
-        });
-
-        const displayName = userInfo.user.profile.display_name || userInfo.user.real_name;
-        await say(`I'm sorry ${displayName}, I'm afraid I can't do that.`);
-        return;
-      }
-
-      // Danceparty response with a random mix of emoji
-      if (message.text.match(/danceparty|dance party/i)) {
-        // Both emoji and slack style :emoji: are supported
-        const emoji = ["💃", "🕺", "🎉", "🎊", "🎈", "🎶", "🎵", "🔊", "🕺💃", "🥳", "👯‍♀️", "👯‍♂️", "🪩", "🪅"];
-
-        // Select 10-12 random emoji from the array
-        const numEmoji = Math.floor(Math.random() * 3) + 10;
-        const selectedEmoji = [];
-        while (selectedEmoji.length < numEmoji) {
-          const randomIndex = Math.floor(Math.random() * emoji.length);
-          selectedEmoji.push(emoji[randomIndex]);
-        }
-
-        // Join the selected emoji into a single string and send the message
-        const emojiString = selectedEmoji.join("");
-        await say(emojiString);
-        return;
-      }
-
-      // A button that opens a webpage
-      if (message.text.match(/tiktok|tik tok/i)) {
-        await say({
-          text: "Party mode activated! :female_singer:",
-          blocks: [
-            {
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: "Grab my glasses, I'm out the door, I'm gonna hit the city! :sunglasses:",
-              },
+    // A button that opens a webpage
+    if (message.text.match(/tiktok|tik tok/i)) {
+      await say({
+        text: "Party mode activated! :female_singer:",
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: "Grab my glasses, I'm out the door, I'm gonna hit the city! :sunglasses:",
             },
-            {
-              type: "actions",
-              elements: [
-                {
-                  type: "button",
-                  text: {
-                    type: "plain_text",
-                    text: "DJ Blow My Speakers Up",
-                  },
-                  url: "https://scarolan.github.io/rickroll/tiktok.html",
+          },
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "DJ Blow My Speakers Up",
                 },
-              ],
-            },
-          ],
-        });
-        return;
-      }
-
-      // Another button that opens a webpage
-      if (message.text.match(/rickroll|rick roll|never gonna give you up/i)) {
-        await say({
-          text: "Rickroll activated!",
-          blocks: [
-            {
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: "We're no strangers to love...:man_dancing:",
+                url: "https://scarolan.github.io/rickroll/tiktok.html",
               },
+            ],
+          },
+        ],
+      });
+      return;
+    }
+
+    // Another button that opens a webpage
+    if (message.text.match(/rickroll|rick roll|never gonna give you up/i)) {
+      await say({
+        text: "Rickroll activated!",
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: "We're no strangers to love...:man_dancing:",
             },
-            {
-              type: "actions",
-              elements: [
-                {
-                  type: "button",
-                  text: {
-                    type: "plain_text",
-                    text: "Rickroll Me",
-                  },
-                  url: "https://scarolan.github.io/rickroll/index.html",
+          },
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "Rickroll Me",
                 },
-              ],
-            },
-          ],
-        });
-        return;
-      }
+                url: "https://scarolan.github.io/rickroll/index.html",
+              },
+            ],
+          },
+        ],
+      });
+      return;
     }
   });
 
-  ///////////////////////////////////////////////////////////////
-  // This section is like the 'respond' method in Hubot
-  // You must address the bot directly with @botname
-  //
-  // This is where you should put commands that you want the bot
-  // to execute.
-  ///////////////////////////////////////////////////////////////
   app.message(directMention(), async ({ message, say }) => {
+  ///////////////////////////////////////////////////////////////
+  // This section is like the 'respond' method in Hubot.
+  // Address the bot directly with @botname for it to respond.
+  // For example: @botname help
+  ///////////////////////////////////////////////////////////////
 
     // Show the help and usage instructions
     if (message.text.toLowerCase().includes('help')) {
@@ -277,16 +269,6 @@ async function handleMessage(message) {
     // Fall back to ChatGPT if nothing above matches
     const responseText = await handleMessage(message);
     await say(responseText);
-  });
-
-  ///////////////////////////////////////////////////////////////
-  // This section handles direct messages
-  ///////////////////////////////////////////////////////////////
-  app.message(async ({ message, say }) => {
-    if ((message.text && message.channel_type === 'im')) {
-      const responseText = await handleMessage(message);
-      await say(responseText);
-    }
   });
 
   // Start the app
