@@ -1,22 +1,21 @@
 # Eve - a Bolt-JS Slack Chatbot
 
 ## Overview
+This is a ChatGPT-powered Slack chatbot built on the Bolt JS framework. The bot comes with support for canned responses and will fall back to ChatGPT for any messages you haven't defined a match for. You can customize the bot's personality and responses however you wish!
 
-This is a Slack app built with the [Bolt for JavaScript framework][2] that showcases
-responding to events and interactive buttons.
-
-## Running locally
+## Installation Instructions
 
 ### 0. Create a new Slack App
 
 - Go to https://api.slack.com/apps
 - Click **Create App**
 - Choose a workspace
-- Enter App Manifest using contents of `manifest.yaml`
+- Enter the manifest.yaml contents
+- Update the name and display name settings
 - Click **Create**
 
 Once the app is created click **Install to Workspace** 
-Then scroll down in Basic Info and click **Generate Token and Scopes** with both scopes
+Then scroll down in Basic Info and click **Generate Token and Scopes** with all three scopes enabled.
 
 ### 1. Setup environment variables
 
@@ -47,5 +46,7 @@ npm run start
 ```
 
 ### 4. Test
-
 Go to the installed workspace and type **help** in a DM to your new bot. 
+
+### 5. Deploy to production
+You'll need a Linux server, container, or application platform that supports nodejs to keep the bot running. Slack has a tutorial for getting an app running on the Glitch platform: https://api.slack.com/tutorials/hello-world-bolt
