@@ -17,7 +17,7 @@ oauth_config:
       - chat:write
       - commands
       - groups:history
-      - groups:read # Required for private channels?
+      - groups:read
       - im:history
       - im:write
       - mpim:read
