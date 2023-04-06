@@ -199,6 +199,9 @@ async function handleMessage(message) {
       });
       return;
     }
+    // Fall back to ChatGPT if nothing above matches
+    const responseText = await handleMessage(message);
+    await say(responseText);
   });
 
   app.message(directMention(), async ({ message, say }) => {
