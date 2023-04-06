@@ -3,7 +3,14 @@
 ## Overview
 This is a ChatGPT-powered Slack chatbot built on the Bolt JS framework. The bot comes with support for canned responses and will fall back to ChatGPT for any messages you haven't defined a match for. You can customize the bot's personality and responses however you wish!
 
-## Installation Instructions
+## Prerequisites
+You will need a local Redis installation to persist the bot's conversation memory. You can install Redis server on Ubuntu like this:
+
+```zsh
+sudo apt -y install redis-server
+```
+
+## Installation
 
 ### 0. Create a new Slack App
 
