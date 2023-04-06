@@ -98,7 +98,7 @@ async function handleMessage(message) {
 
     // Responds to greetings that include the bot's name
     const botNameRegex = new RegExp(`\\b${process.env.SLACK_BOT_USER_NAME}\\b`, 'i');
-    if (message.text.match(/^(hi|hello|yo|hey|greetings|whats up|what's up|hola).*/i) && botNameRegex.test(message.text)) {
+    if (message.text.match(/^(hello|hey|greetings|whats up|what's up|hola).*/i) && botNameRegex.test(message.text)) {
       const userInfo = await app.client.users.info({
         token: process.env.SLACK_BOT_TOKEN,
         user: message.user,
@@ -199,9 +199,12 @@ async function handleMessage(message) {
       });
       return;
     }
-    // Fall back to ChatGPT if nothing above matches
-    const responseText = await handleMessage(message);
-    await say(responseText);
+
+    // If the user is in a DM, respond with the message without @botname
+    if (message.channel_type === 'im') {
+      const responseText = await handleMessage(message);
+      await say(responseText);
+    }
   });
 
   app.message(directMention(), async ({ message, say }) => {
