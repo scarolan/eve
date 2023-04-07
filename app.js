@@ -201,7 +201,7 @@ async function handleMessage(message) {
     }
 
     // If the user is in a DM, respond to the message with ChatGPT
-    if (message.channel_type === 'im') {
+    if (message.channel_type === 'im' || message.channel_type === 'mpim') {
       const responseText = await handleMessage(message);
       await say(responseText);
     }

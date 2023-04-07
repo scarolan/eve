@@ -29,6 +29,7 @@ settings:
       - message.channels # for public channels
       - message.im # for direct messages
       - message.groups # for private channels
+      - message.mpim # for multi-party DMs
   interactivity:
     is_enabled: true
   org_deploy_enabled: false
