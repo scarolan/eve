@@ -201,7 +201,18 @@ async function handleMessage(message) {
     }
 
     // If the user is in a DM, respond to the message with ChatGPT
-    if (message.channel_type === 'im' || message.channel_type === 'mpim') {
+    if (message.channel_type === 'im') {
+      const responseText = await handleMessage(message);
+      await say(responseText);
+    }
+
+    // If the user is in a multi party DM ignore other bots
+    if (message.channel_type === 'mpim') {
+      // Ignore messages from other bots
+      if (message.bot_id) {
+        console.log("Ignoring message from another bot.");
+        return;
+      }
       const responseText = await handleMessage(message);
       await say(responseText);
     }
