@@ -5,6 +5,6 @@
 # Learn more from ready-to-use templates: https://www.gitpod.io/docs/introduction/getting-started/quickstart
 
 tasks:
-  - command: redis-server --daemonize yes
+  - before: redis-server --daemonize yes
   - init: npm install
     command: npm run start
