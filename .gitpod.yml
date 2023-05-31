@@ -8,8 +8,7 @@ image:
   file: .gitpod.Dockerfile
 
 tasks:
-  - name: Install Redis
+  - name: Install Redis and start the bot
     before: redis-server --daemonize yes
-  - name: Install and run the app
     init: npm install
     command: npm run start
