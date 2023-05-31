@@ -11,7 +11,7 @@
 ///////////////////////////////////////////////////////////////
 
 // Give your bot some personality.
-const personalityPrompt = `You are a quirky but helpful robot named ${process.env.SLACK_BOT_USER_NAME}. You are named after the robot Eve from the movie Wall-E.`;
+const personalityPrompt = `You are a Slack chatbot named ${process.env.SLACK_BOT_USER_NAME}. Your purpose is to assist users with technical questions about the Gitpod platform.`;
 
 // Import required libraries
 import pkg from '@slack/bolt';

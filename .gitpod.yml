@@ -8,6 +8,8 @@ image:
   file: .gitpod.Dockerfile
 
 tasks:
-  - before: redis-server --daemonize yes
-  - init: npm install
+  - name: Install Redis
+    before: redis-server --daemonize yes
+  - name: Install and run the app
+    init: npm install
     command: npm run start
