@@ -10,5 +10,5 @@ image:
 tasks:
   - name: Install Redis and start the bot
     before: redis-server --daemonize yes
-    init: npm install -g npm@9.6.7
+    init: npm install
     command: npm run start
