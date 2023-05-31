@@ -1,4 +1,4 @@
 FROM gitpod/workspace-full
-
+USER root
 # Install Redis
-RUN sudo install-packages redis-server
+RUN install-packages redis-server
