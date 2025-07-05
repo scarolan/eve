@@ -1,6 +1,6 @@
 {
   "name": "eve-bolt-js-slack-chatbot",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Eve - a BoltJS powered Slack Chatbot",
   "main": "app.js",
   "type": "module",
