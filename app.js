@@ -18,6 +18,7 @@ import pkg from '@slack/bolt';
 const { App } = pkg;
 import { directMention } from '@slack/bolt';
 import { ChatGPTAPI } from 'chatgpt';
+import { Configuration, OpenAIApi } from 'openai';
 import Keyv from 'keyv';
 import KeyvRedis from '@keyv/redis';
 import fetch from 'node-fetch';
@@ -50,6 +51,11 @@ const openai_api = new ChatGPTAPI({
     model: 'gpt-3.5-turbo'
   }
 });
+
+// OpenAI API client for generating images
+const dalle = new OpenAIApi(new Configuration({
+  apiKey: process.env.OPENAI_API_KEY
+}));
 
 // Use this map to track the parent message ids for each user
 const userParentMessageIds = new Map();
@@ -230,8 +236,9 @@ async function handleMessage(message) {
         'tiktok     - Wake up in the morning feeling like P Diddy',
         'rickroll   - Never gonna give you up, never gonna let you down.',
         '',
-        '# Slash command:',
+        '# Slash commands:',
         '/askgpt <question> - Ask ChatGPT and get an ephemeral reply',
+        '/dalle <prompt>  - Generate an image with DALL-E',
         '',
         `# Address the bot directly with @${process.env.SLACK_BOT_USER_NAME} syntax:`,
         `@${process.env.SLACK_BOT_USER_NAME} the rules - Explains Asimov's laws of robotics`,
@@ -293,6 +300,20 @@ async function handleMessage(message) {
     await ack();
     const responseText = await handleMessage({ text: command.text, user: command.user_id });
     await respond({ text: responseText, response_type: 'ephemeral' });
+  });
+
+  // Slash command to generate an image with DALL-E
+  app.command('/dalle', async ({ command, ack, respond }) => {
+    await ack();
+    try {
+      const prompt = command.text || 'an image';
+      const image = await dalle.createImage({ prompt, n: 1, size: '512x512' });
+      const url = image.data.data[0].url;
+      await respond({ text: url, response_type: 'in_channel' });
+    } catch (error) {
+      console.error(error);
+      await respond({ text: `Image generation failed: ${error.message}`, response_type: 'ephemeral' });
+    }
   });
 
   // Start the app

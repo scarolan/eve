@@ -70,6 +70,11 @@ You can also use the new `/askgpt` slash command in any channel:
 ```text
 /askgpt what is the weather today?
 ```
+You can also generate images using the `/dalle` slash command:
+
+```text
+/dalle a cute robot
+```
 
 ### 5. Deploy to production
 You'll need a Linux server, container, or application platform that supports nodejs to keep the bot running. Slack has a tutorial for getting an app running on the Glitch platform: https://api.slack.com/tutorials/hello-world-bolt
