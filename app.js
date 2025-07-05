@@ -67,10 +67,7 @@ async function handleMessage(message) {
   } else {
     // send a follow-up message with the stored parentMessageId
     const parentId = userParentMessageIds.get(userId);
-    openai_api.sendMessage(message.text, {
-      parentMessageId: parentId
-    }),
-    response = await openai_api.sendMessage(message.text, {parentMessageId: parentId});
+    response = await openai_api.sendMessage(message.text, { parentMessageId: parentId });
     // Reset the parent message id to the current message
     userParentMessageIds.set(userId, response.id);
   }
