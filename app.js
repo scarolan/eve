@@ -63,17 +63,17 @@ async function handleMessage(message) {
   if (!userParentMessageIds.has(userId)) {
     // send the first message without a parentMessageId
     response = await openai_api.sendMessage(message.text);
-    userParentMessageIds.set(userId, response.id); // store the parent message ID for this user
   } else {
     // send a follow-up message with the stored parentMessageId
     const parentId = userParentMessageIds.get(userId);
     response = await openai_api.sendMessage(message.text, { parentMessageId: parentId });
-    // Reset the parent message id to the current message
-    userParentMessageIds.set(userId, response.id);
   }
 
+  // store the parent message id for this user
+  userParentMessageIds.set(userId, response.id);
+
   //console.log(response.text);
-  return(response.text);
+  return response.text;
 }
 
 // The functional code for your bot is below:
