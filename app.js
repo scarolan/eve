@@ -233,6 +233,9 @@ async function handleMessage(message) {
         'tiktok     - Wake up in the morning feeling like P Diddy',
         'rickroll   - Never gonna give you up, never gonna let you down.',
         '',
+        '# Slash command:',
+        '/askgpt <question> - Ask ChatGPT and get an ephemeral reply',
+        '',
         `# Address the bot directly with @${process.env.SLACK_BOT_USER_NAME} syntax:`,
         `@${process.env.SLACK_BOT_USER_NAME} the rules - Explains Asimov's laws of robotics`,
         `@${process.env.SLACK_BOT_USER_NAME} dad joke  - Provides a random dad joke`,
@@ -286,6 +289,13 @@ async function handleMessage(message) {
     // Fall back to ChatGPT if nothing above matches
     const responseText = await handleMessage(message);
     await say(responseText);
+  });
+
+  // Slash command to query ChatGPT directly
+  app.command('/askgpt', async ({ command, ack, respond }) => {
+    await ack();
+    const responseText = await handleMessage({ text: command.text, user: command.user_id });
+    await respond({ text: responseText, response_type: 'ephemeral' });
   });
 
   // Start the app

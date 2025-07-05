@@ -8,6 +8,11 @@ features:
   bot_user:
     display_name: Eve
     always_online: true
+  slash_commands:
+    - command: /askgpt
+      description: Ask ChatGPT a question
+      usage_hint: "/askgpt <question>"
+      should_escape: false
 oauth_config:
   scopes:
     bot:
