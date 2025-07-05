@@ -29,6 +29,8 @@ oauth_config:
       - mpim:write
       - mpim:history
       - users:read
+      - files:read
+      - files:write
 settings:
   event_subscriptions:
     bot_events:
