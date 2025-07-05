@@ -18,7 +18,7 @@ import pkg from '@slack/bolt';
 const { App } = pkg;
 import { directMention } from '@slack/bolt';
 import { ChatGPTAPI } from 'chatgpt';
-import { Configuration, OpenAIApi } from 'openai';
+import OpenAI from 'openai';
 import Keyv from 'keyv';
 import KeyvRedis from '@keyv/redis';
 import fetch, { FormData } from 'node-fetch';
@@ -72,9 +72,9 @@ async function generateImage(prompt) {
 }
 
 // OpenAI API client for generating images
-const dalle = new OpenAIApi(new Configuration({
+const dalle = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
-}));
+});
 
 // Use this map to track the parent message ids for each user
 const userParentMessageIds = new Map();
@@ -403,8 +403,8 @@ async function handleMessage(message) {
     await ack();
     try {
       const prompt = command.text || 'an image';
-      const image = await dalle.createImage({ prompt, n: 1, size: '512x512' });
-      const url = image.data.data[0].url;
+      const image = await dalle.images.generate({ prompt, n: 1, size: '512x512' });
+      const url = image.data[0].url;
       await respond({ text: url, response_type: 'in_channel' });
     } catch (error) {
       console.error(error);
