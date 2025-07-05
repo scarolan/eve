@@ -70,6 +70,11 @@ You can also use the new `/askgpt` slash command in any channel:
 ```text
 /askgpt what is the weather today?
 ```
+You can also generate images using the `/dalle` slash command:
+
+```text
+/dalle a cute robot
+```
 
 You can also generate images with the `/image` command:
 

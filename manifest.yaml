@@ -13,9 +13,9 @@ features:
       description: Ask ChatGPT a question
       usage_hint: "/askgpt <question>"
       should_escape: false
-    - command: /image
-      description: Generate an image with DALL·E
-      usage_hint: "/image <prompt>"
+    - command: /dalle
+      description: Generate an image with DALL-E
+      usage_hint: "/dalle <prompt>"
       should_escape: false
 oauth_config:
   scopes:
@@ -33,6 +33,8 @@ oauth_config:
       - mpim:write
       - mpim:history
       - users:read
+      - files:read
+      - files:write
 settings:
   event_subscriptions:
     bot_events:
