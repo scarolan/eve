@@ -52,6 +52,25 @@ const openai_api = new ChatGPTAPI({
   }
 });
 
+
+async function generateImage(prompt) {
+  const response = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      prompt,
+      n: 1,
+      size: '512x512',
+      response_format: 'b64_json',
+    }),
+  });
+  const data = await response.json();
+  return Buffer.from(data.data[0].b64_json, 'base64');
+}
+
 // OpenAI API client for generating images
 const dalle = new OpenAIApi(new Configuration({
   apiKey: process.env.OPENAI_API_KEY
@@ -294,11 +313,12 @@ async function handleMessage(message) {
         '',
         '# Slash commands:',
         '/askgpt <question> - Ask ChatGPT and get an ephemeral reply',
-        '/dalle <prompt>  - Generate an image with DALL-E',
+        '/image <prompt>  - Generate an image with DALL·E',
         '',
         `# Address the bot directly with @${process.env.SLACK_BOT_USER_NAME} syntax:`,
         `@${process.env.SLACK_BOT_USER_NAME} the rules - Explains Asimov's laws of robotics`,
         `@${process.env.SLACK_BOT_USER_NAME} dad joke  - Provides a random dad joke`,
+        `@${process.env.SLACK_BOT_USER_NAME} image <prompt> - Create an image with DALL·E`,
         '',
         `# All other queries will be handled by ChatGPT, so you can ask it anything!`,
         `@${process.env.SLACK_BOT_USER_NAME} what is the capital of Australia?`,
@@ -345,6 +365,26 @@ async function handleMessage(message) {
       }
       return;
     };
+
+    // Generate an image with DALL·E
+    const imageMatch = message.text.match(/^image\s+(.+)/i);
+    if (imageMatch) {
+      try {
+        const prompt = imageMatch[1];
+        const imageBuffer = await generateImage(prompt);
+        await app.client.files.upload({
+          token: process.env.SLACK_BOT_TOKEN,
+          channels: message.channel,
+          file: imageBuffer,
+          filename: 'image.png',
+          title: prompt,
+        });
+      } catch (error) {
+        console.error(error);
+        await say(`Encountered an error generating image :( ${error}`);
+      }
+      return;
+    }
 
     // Fall back to ChatGPT if nothing above matches
     const responseText = await handleMessage(message);
