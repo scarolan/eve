@@ -21,7 +21,7 @@ import { ChatGPTAPI } from 'chatgpt';
 import { Configuration, OpenAIApi } from 'openai';
 import Keyv from 'keyv';
 import KeyvRedis from '@keyv/redis';
-import fetch from 'node-fetch';
+import fetch, { FormData } from 'node-fetch';
 //Uncomment this and the logLevel below to enable DEBUG
 //import { LogLevel } from '@slack/bolt';
 
@@ -60,6 +60,33 @@ const dalle = new OpenAIApi(new Configuration({
 // Use this map to track the parent message ids for each user
 const userParentMessageIds = new Map();
 
+// Function to generate a caption for an image using an external API
+async function getImageCaption(imageBuffer) {
+  try {
+    const form = new FormData();
+    form.append('image', imageBuffer, 'image.jpg');
+    const res = await fetch('https://api.deepai.org/api/densecap', {
+      method: 'POST',
+      headers: { 'api-key': process.env.DEEPAI_API_KEY || '' },
+      body: form,
+    });
+    const data = await res.json();
+    return data?.output?.captions?.[0]?.caption || 'I could not describe that image.';
+  } catch (error) {
+    console.error('Image captioning failed:', error);
+    return 'I encountered an error trying to describe that image.';
+  }
+}
+
+// Download an image from Slack and caption it
+async function captionSlackImage(file) {
+  const response = await fetch(file.url_private, {
+    headers: { Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}` },
+  });
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return await getImageCaption(buffer);
+}
+
 // Function to handle messages and map them to their parent ids
 // This is how the bot is able to remember previous conversations
 async function handleMessage(message) {
@@ -83,7 +110,25 @@ async function handleMessage(message) {
 }
 
 // The functional code for your bot is below:
+
 (async () => {
+
+  // When a file is shared, check if it's an image and provide a caption
+  app.event('file_shared', async ({ event, client, context }) => {
+    try {
+      const info = await client.files.info({ file: event.file_id });
+      const file = info.file;
+      if (file.mimetype && file.mimetype.startsWith('image/')) {
+        const caption = await captionSlackImage(file);
+        await client.chat.postMessage({
+          channel: event.channel_id,
+          text: `Image description: ${caption}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error processing shared file:', error);
+    }
+  });
 
   app.message(async ({ message, say }) => {
   ///////////////////////////////////////////////////////////////
@@ -92,6 +137,17 @@ async function handleMessage(message) {
   // These phrases do not require an @botname to be triggered.
   // Use these sparingly and be sure your match is not too broad.
   ///////////////////////////////////////////////////////////////
+
+    // If the message contains image files, caption them
+    if (message.files && message.files.length > 0) {
+      for (const file of message.files) {
+        if (file.mimetype && file.mimetype.startsWith('image/')) {
+          const caption = await captionSlackImage(file);
+          await say(`Image description: ${caption}`);
+        }
+      }
+      return;
+    }
 
     // Responds any message containing 'i love you' with 'i know'
     if (message.text.match(/i love you/i)) {
