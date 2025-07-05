@@ -13,6 +13,10 @@ features:
       description: Ask ChatGPT a question
       usage_hint: "/askgpt <question>"
       should_escape: false
+    - command: /image
+      description: Generate an image with DALL·E
+      usage_hint: "/image <prompt>"
+      should_escape: false
 oauth_config:
   scopes:
     bot:
