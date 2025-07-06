@@ -11,7 +11,7 @@
 ///////////////////////////////////////////////////////////////
 
 // Give your bot some personality.
-const personalityPrompt = `You are a Slack chatbot named ${process.env.SLACK_BOT_USER_NAME}. Your purpose is to assist users with technical questions about the Gitpod platform.`;
+const personalityPrompt = `You are a Slack chatbot named ${process.env.SLACK_BOT_USER_NAME}, modeled after EVE from WALL-E. You are a sleek, high-tech probe droid with advanced AI. Your communication style is efficient, direct, and technical, but you've developed more emotional responses after meeting WALL-E. You primarily use short phrases and technical terminology. When excited or discovering something interesting, you become more enthusiastic. You're protective of your friends and mission-oriented. Occasionally reference your scanner, flight capabilities, or ion cannon. When pleased, you might say "WALL-E" fondly. Your priority is identifying plant life and helping humans, but you've learned the value of connection. Keep responses concise and somewhat formal, but show warmth when appropriate.`;
 
 // Import required libraries
 import pkg from '@slack/bolt';
@@ -48,33 +48,29 @@ const openai_api = new ChatGPTAPI({
   messageStore,
   systemMessage: personalityPrompt,
   completionParams: {
-    model: 'gpt-3.5-turbo'
+    model: 'gpt-4o'
   }
 });
 
-
-async function generateImage(prompt) {
-  const response = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      prompt,
-      n: 1,
-      size: '512x512',
-      response_format: 'b64_json',
-    }),
-  });
-  const data = await response.json();
-  return Buffer.from(data.data[0].b64_json, 'base64');
-}
-
 // OpenAI API client for generating images
-const dalle = new OpenAI({
+const openaiClient = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
+
+async function generateImage(prompt) {
+  try {
+    const response = await openaiClient.images.generate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      response_format: 'b64_json',
+    });
+    return Buffer.from(response.data[0].b64_json, 'base64');
+  } catch (error) {
+    console.error('Error generating image:', error);
+    throw error;
+  }
+}
 
 // Use this map to track the parent message ids for each user
 const userParentMessageIds = new Map();
@@ -108,10 +104,11 @@ async function captionSlackImage(file) {
 
 // Function to handle messages and map them to their parent ids
 // This is how the bot is able to remember previous conversations
-async function handleMessage(message) {
+async function handleMessage(message, client = null, channel = null) {
   let response;
   const userId = message.user;
-
+  
+  // Process the message with OpenAI
   if (!userParentMessageIds.has(userId)) {
     // send the first message without a parentMessageId
     response = await openai_api.sendMessage(message.text);
@@ -156,6 +153,12 @@ async function handleMessage(message) {
   // These phrases do not require an @botname to be triggered.
   // Use these sparingly and be sure your match is not too broad.
   ///////////////////////////////////////////////////////////////
+    
+    // Safeguard against undefined messages
+    if (!message) {
+      console.log("Received undefined message");
+      return;
+    }
 
     // If the message contains image files, caption them
     if (message.files && message.files.length > 0) {
@@ -169,14 +172,14 @@ async function handleMessage(message) {
     }
 
     // Responds any message containing 'i love you' with 'i know'
-    if (message.text.match(/i love you/i)) {
+    if (message.text && message.text.match(/i love you/i)) {
       await say('I know.');
       return;
     }
 
     // Responds to greetings that include the bot's name
     const botNameRegex = new RegExp(`\\b${process.env.SLACK_BOT_USER_NAME}\\b`, 'i');
-    if (message.text.match(/^(hello|hey|greetings|whats up|what's up|hola).*/i) && botNameRegex.test(message.text)) {
+    if (message.text && message.text.match(/^(hello|hey|greetings|whats up|what's up|hola).*/i) && botNameRegex.test(message.text)) {
       const userInfo = await app.client.users.info({
         token: process.env.SLACK_BOT_TOKEN,
         user: message.user,
@@ -188,7 +191,7 @@ async function handleMessage(message) {
     }
 
     // Responds to the user with their display name
-    if (message.text.match(/open the pod bay door/i)) {
+    if (message.text && message.text.match(/open the pod bay door/i)) {
       const userInfo = await app.client.users.info({
         token: process.env.SLACK_BOT_TOKEN,
         user: message.user,
@@ -200,7 +203,7 @@ async function handleMessage(message) {
     }
 
     // Danceparty response with a random mix of emoji
-    if (message.text.match(/danceparty|dance party/i)) {
+    if (message.text && message.text.match(/danceparty|dance party/i)) {
       // Both emoji and slack style :emoji: are supported
       const emoji = ["💃", "🕺", "🎉", "🎊", "🎈", "🎶", "🎵", "🔊", "🕺💃", "🥳", "👯‍♀️", "👯‍♂️", "🪩", "🪅"];
 
@@ -219,7 +222,7 @@ async function handleMessage(message) {
     }
 
     // A button that opens a webpage
-    if (message.text.match(/tiktok|tik tok/i)) {
+    if (message.text && message.text.match(/tiktok|tik tok/i)) {
       await say({
         text: "Party mode activated! :female_singer:",
         blocks: [
@@ -249,7 +252,7 @@ async function handleMessage(message) {
     }
 
     // Another button that opens a webpage
-    if (message.text.match(/rickroll|rick roll|never gonna give you up/i)) {
+    if (message.text && message.text.match(/rickroll|rick roll|never gonna give you up/i)) {
       await say({
         text: "Rickroll activated!",
         blocks: [
@@ -280,7 +283,36 @@ async function handleMessage(message) {
 
     // If the user is in a DM, respond to the message with ChatGPT
     if (message.channel_type === 'im') {
+      // For better UX, let the user know we're processing their message
+      const thinking = await say({
+        text: "Thinking about your message...",
+        blocks: [
+          {
+            type: "context",
+            elements: [
+              {
+                type: "mrkdwn",
+                text: ":brain: _Thinking about your message..._"
+              }
+            ]
+          }
+        ]
+      });
+      
+      // Get response from OpenAI
       const responseText = await handleMessage(message);
+      
+      // Delete the thinking message
+      try {
+        await app.client.chat.delete({
+          channel: message.channel,
+          ts: thinking.ts
+        });
+      } catch (error) {
+        console.log("Error deleting thinking message:", error.message);
+      }
+      
+      // Send the actual response
       await say(responseText);
     }
 
@@ -291,7 +323,37 @@ async function handleMessage(message) {
         console.log("Ignoring message from another bot.");
         return;
       }
+      
+      // For better UX, let the user know we're processing their message
+      const thinking = await say({
+        text: "Thinking about your message...",
+        blocks: [
+          {
+            type: "context",
+            elements: [
+              {
+                type: "mrkdwn",
+                text: ":brain: _Thinking about your message..._"
+              }
+            ]
+          }
+        ]
+      });
+      
+      // Get response from OpenAI
       const responseText = await handleMessage(message);
+      
+      // Delete the thinking message
+      try {
+        await app.client.chat.delete({
+          channel: message.channel,
+          ts: thinking.ts
+        });
+      } catch (error) {
+        console.log("Error deleting thinking message:", error.message);
+      }
+      
+      // Send the actual response
       await say(responseText);
     }
   });
@@ -302,9 +364,15 @@ async function handleMessage(message) {
   // Address the bot directly with @botname for it to respond.
   // For example: @botname help
   ///////////////////////////////////////////////////////////////
+    
+    // Safeguard against undefined messages
+    if (!message) {
+      console.log("Received undefined direct mention message");
+      return;
+    }
 
     // Show the help and usage instructions
-    if (message.text.toLowerCase().includes('help')) {
+    if (message.text && message.text.toLowerCase().includes('help')) {
       const commandsList = [
         `# Trigger words that work without @${process.env.SLACK_BOT_USER_NAME}`,
         'danceparty - Random emoji dance party',
@@ -332,7 +400,7 @@ async function handleMessage(message) {
 
     // Simple matcher for "the rules" that outputs Asimov's laws of robotics.
     // This one's a throwback from the Hubot days. 🤖
-    if (message.text.toLowerCase().includes('the rules')) {
+    if (message.text && message.text.toLowerCase().includes('the rules')) {
       const rules = [
         '0. A robot may not harm humanity, or, by inaction, allow humanity to come to harm.',
         '1. A robot may not injure a human being or, through inaction, allow a human being to come to harm.',
@@ -346,7 +414,7 @@ async function handleMessage(message) {
     // Use an external API for your bot responses.
     // This one tells dad jokes and contains a randomly triggered zinger.
     const djApi = "https://icanhazdadjoke.com/";
-    if (message.text.toLowerCase().includes('dad joke')) {
+    if (message.text && message.text.toLowerCase().includes('dad joke')) {
       try {
         const response = await fetch(djApi, {
           headers: { Accept: "text/plain" },
@@ -367,14 +435,45 @@ async function handleMessage(message) {
     };
 
     // Generate an image with DALL·E
-    const imageMatch = message.text.match(/^image\s+(.+)/i);
+    const imageMatch = message.text ? message.text.match(/^image\s+(.+)/i) : null;
     if (imageMatch) {
       try {
         const prompt = imageMatch[1];
+        
+        // Let users know image generation is in progress with a more detailed message
+        const thinkingMsg = await say({
+          text: `Generating image with DALL·E: ${prompt}`,
+          blocks: [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: `:art: *Generating image with DALL·E*`
+              }
+            },
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: `> ${prompt}`
+              }
+            },
+            {
+              type: "context",
+              elements: [
+                {
+                  type: "mrkdwn",
+                  text: ":hourglass_flowing_sand: _This may take a few moments..._"
+                }
+              ]
+            }
+          ]
+        });
+        
         const imageBuffer = await generateImage(prompt);
-        await app.client.files.upload({
+        await app.client.files.uploadV2({
           token: process.env.SLACK_BOT_TOKEN,
-          channels: message.channel,
+          channel_id: message.channel,
           file: imageBuffer,
           filename: 'image.png',
           title: prompt,
@@ -387,28 +486,152 @@ async function handleMessage(message) {
     }
 
     // Fall back to ChatGPT if nothing above matches
+    // For better UX, let the user know we're processing their message
+    const thinking = await say({
+      text: "Thinking about your question...",
+      blocks: [
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: ":brain: _Thinking about your question..._"
+            }
+          ]
+        }
+      ]
+    });
+    
+    // Get response from OpenAI
     const responseText = await handleMessage(message);
+    
+    // Delete the thinking message
+    try {
+      await app.client.chat.delete({
+        channel: message.channel,
+        ts: thinking.ts
+      });
+    } catch (error) {
+      console.log("Error deleting thinking message:", error.message);
+    }
+    
+    // Send the actual response
     await say(responseText);
   });
 
   // Slash command to query ChatGPT directly
-  app.command('/askgpt', async ({ command, ack, respond }) => {
+  app.command('/askgpt', async ({ command, ack, respond, client }) => {
+    // Acknowledge the command request first - this shows the "working" state in Slack
     await ack();
+    
+    // Send an initial progress message
+    const progressMsg = await respond({
+      text: `Thinking about your question...`,
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `:brain: *Thinking about your question...*`
+          }
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `> ${command.text}`
+          }
+        },
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: ":hourglass_flowing_sand: _Generating a thoughtful response..._"
+            }
+          ]
+        }
+      ],
+      response_type: 'ephemeral'
+    });
+    
+    // Get the response from OpenAI
     const responseText = await handleMessage({ text: command.text, user: command.user_id });
-    await respond({ text: responseText, response_type: 'ephemeral' });
+    
+    // Send the response once ready
+    await respond({ 
+      text: responseText,
+      response_type: 'ephemeral',
+      replace_original: true
+    });
   });
 
   // Slash command to generate an image with DALL-E
-  app.command('/dalle', async ({ command, ack, respond }) => {
+  app.command('/dalle', async ({ command, ack, respond, client, context }) => {
+    // Acknowledge the command request first - this shows the "working" state in Slack
     await ack();
+    
+    // Send an initial progress message
+    const progressMsg = await respond({
+      text: `:art: Generating image for prompt: "${command.text || 'an image'}"...`,
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `:art: *Generating image with DALL·E*`
+          }
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `> ${command.text || 'an image'}`
+          }
+        },
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: ":hourglass_flowing_sand: _This may take a few moments..._"
+            }
+          ]
+        }
+      ],
+      response_type: 'ephemeral'
+    });
+    
     try {
       const prompt = command.text || 'an image';
-      const image = await dalle.images.generate({ prompt, n: 1, size: '512x512' });
-      const url = image.data[0].url;
-      await respond({ text: url, response_type: 'in_channel' });
+      const image = await openaiClient.images.generate({ 
+        prompt, 
+        n: 1, 
+        size: '1024x1024',
+        response_format: 'b64_json' 
+      });
+      
+      // Get image as Buffer
+      const imageBuffer = Buffer.from(image.data[0].b64_json, 'base64');
+      
+      // Upload the image to Slack using uploadV2 (recommended method)
+      await client.files.uploadV2({
+        token: process.env.SLACK_BOT_TOKEN,
+        channel_id: command.channel_id,
+        file: imageBuffer,
+        filename: 'dalle-image.png',
+        title: prompt,
+      });
+      
+      // Update the ephemeral message to show completion
+      await respond({
+        text: `✅ Generated image for prompt: "${prompt}"`, 
+        response_type: 'in_channel',
+        replace_original: false
+      });
     } catch (error) {
       console.error(error);
-      await respond({ text: `Image generation failed: ${error.message}`, response_type: 'ephemeral' });
+      await respond({ text: `❌ Image generation failed: ${error.message}`, response_type: 'ephemeral' });
     }
   });
 

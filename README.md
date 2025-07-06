@@ -26,6 +26,7 @@ Then scroll down in Basic Info and click **Generate Token and Scopes** with all 
 
 ### 1. Setup environment variables
 
+#### For Linux/Mac
 ```zsh
 # Replace with your bot and app token
 export SLACK_BOT_TOKEN=<your-bot-token> # from the OAuth section
@@ -33,6 +34,25 @@ export SLACK_APP_TOKEN=<your-app-level-token> # from the Basic Info App Token Se
 export SLACK_BOT_USER_NAME=<your-bot-username> # must match the short name of your bot user
 export OPENAI_API_KEY=<your-openai-api-key> # get from here: https://platform.openai.com/account/api-keys
 ```
+
+#### For Windows PowerShell
+You can use the provided PowerShell script template:
+
+```powershell
+# Copy run_c3po.ps1 and customize with your tokens
+$env:SLACK_BOT_TOKEN = "xoxb-your-bot-token" 
+$env:SLACK_APP_TOKEN = "xapp-your-app-token"  
+$env:SLACK_BOT_USER_NAME = "C-3PO" # Change to match your bot's name
+$env:OPENAI_API_KEY = "your-openai-api-key"
+
+# Optional: Set Redis URL if you're using a custom Redis instance
+# $env:REDIS_URL = "redis://localhost:6379"
+
+# Start the bot
+npm start
+```
+
+> **Note:** The `run_c3po.ps1` file is included in `.gitignore` to prevent accidentally committing credentials to the repository. Always keep your tokens and API keys private.
 
 ### 2. Setup your local project
 

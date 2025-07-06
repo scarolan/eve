@@ -1,3 +1,7 @@
 # node / npm
 node_modules/
 package-lock.json
+
+# Local environment and credentials
+run_c3po.ps1
+*.env
