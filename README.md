@@ -52,8 +52,6 @@ $env:OPENAI_API_KEY = "your-openai-api-key"
 npm start
 ```
 
-> **Note:** The `run_c3po.ps1` file is included in `.gitignore` to prevent accidentally committing credentials to the repository. Always keep your tokens and API keys private.
-
 ### 2. Setup your local project
 
 ```zsh
